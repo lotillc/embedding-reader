@@ -3,48 +3,45 @@
 import fsspec
 from typing import List, Tuple, Union
 import os
+import requests
 
 
-def get_file_list(path: Union[str, List[str]], file_format: str) -> Tuple[fsspec.AbstractFileSystem, List[str]]:
+def get_file_list(embeddings_folder: str, api_endpoint: str, file_format: str) -> Tuple[fsspec.AbstractFileSystem, List[str]]:
     """
-    Get the file system and all the file paths that matches `file_format` under the given `path`.
-    The `path` could a single folder or multiple folders.
+    Get the file system and all the file paths through api_endpoint.
+
     :raises ValueError: if file system is inconsistent under different folders.
     """
-    if isinstance(path, str):
-        return _get_file_list(path, file_format)
-    all_file_paths = []
-    fs = None
-    for p in path:
-        cur_fs, file_paths = _get_file_list(p, file_format, sort_result=False)
-        if fs is None:
-            fs = cur_fs
-        elif fs != cur_fs:
-            raise ValueError(
-                f"The file system in different folder are inconsistent.\n" f"Got one {fs} and the other {cur_fs}"
-            )
-        all_file_paths.extend(file_paths)
-    all_file_paths.sort()
-    return fs, all_file_paths
+    return _get_file_list(embeddings_folder, api_endpoint, file_format)
 
 
-def make_path_absolute(path: str) -> str:
-    fs, p = fsspec.core.url_to_fs(path)
-    if fs.protocol == "file":
-        return os.path.abspath(p)
-    return path
+def get_embedding_paths(api_endpoint: str) -> List[str]:
+    response = requests.get(api_endpoint)
+    if response.status_code != 200:
+        raise ValueError(f"Failed to get embedding paths from {api_endpoint}")
+    data = response.json()["data"]
+    paths = [record['key'] for record in data]
+    return paths
+
+
+def filter_parquet_files(file_list, extension='parquet') -> List[str]:
+    if not extension.startswith('.'):
+        extension = '.' + extension
+
+    return [file for file in file_list if file.endswith(extension)]
 
 
 def _get_file_list(
-    path: str, file_format: str, sort_result: bool = True
+    s3_bucket: str, api_endpoint: str, file_format: str, sort_result: bool = True
 ) -> Tuple[fsspec.AbstractFileSystem, List[str]]:
     """Get the file system and all the file paths that matches `file_format` given a single path."""
-    path = make_path_absolute(path)
-    fs, path_in_fs = fsspec.core.url_to_fs(path)
-    prefix = path[: -len(path_in_fs)]
-    glob_pattern = path.rstrip("/") + f"/**/*.{file_format}"
-    file_paths = fs.glob(glob_pattern)
+    file_paths = get_embedding_paths(api_endpoint)
+    file_paths = filter_parquet_files(file_paths)
+    fs, _ = fsspec.core.url_to_fs(s3_bucket)
+    prefix = s3_bucket.rstrip("/")
+    file_paths_with_prefix = [os.path.join(prefix, file_path) for file_path in file_paths]
+
     if sort_result:
-        file_paths.sort()
-    file_paths_with_prefix = [prefix + file_path for file_path in file_paths]
+        file_paths_with_prefix.sort()
+
     return fs, file_paths_with_prefix

@@ -44,9 +44,9 @@ def get_parquet_headers(fs, embeddings_file_paths):
 class ParquetReader:
     """Parquet reader class, implements init to read the files headers and call to produce embeddings batches"""
 
-    def __init__(self, embeddings_folder, embedding_column_name, metadata_column_names=None):
+    def __init__(self, embeddings_folder, api_endpoint, embedding_column_name, metadata_column_names=None):
         self.embeddings_folder = embeddings_folder
-        self.fs, embeddings_file_paths = get_file_list(embeddings_folder, "parquet")
+        self.fs, embeddings_file_paths = get_file_list(embeddings_folder, api_endpoint, "parquet")
 
         self.metadata_column_names = metadata_column_names
         self.embedding_column_name = embedding_column_name

@@ -11,7 +11,8 @@ class EmbeddingReader:
     def __init__(
         self,
         embeddings_folder,
-        file_format="npy",
+        api_endpoint="",
+        file_format="parquet",
         embedding_column="embedding",
         meta_columns=None,
         metadata_folder=None,
@@ -20,7 +21,7 @@ class EmbeddingReader:
             self.reader = NumpyReader(embeddings_folder)
         elif file_format == "parquet":
             self.reader = ParquetReader(
-                embeddings_folder, embedding_column_name=embedding_column, metadata_column_names=meta_columns
+                embeddings_folder, api_endpoint, embedding_column_name=embedding_column, metadata_column_names=meta_columns
             )
         elif file_format == "parquet_npy":
             self.reader = ParquetNumpyReader(embeddings_folder, metadata_folder, meta_columns)
