@@ -15,11 +15,13 @@ import math
 def file_to_header(filename, fs):
     try:
         with fs.open(filename, "rb") as f:
-            parquet_file = pq.ParquetFile(f, memory_map=True)
-            return (None, [filename, parquet_file.metadata.num_rows])
+            try: 
+                parquet_file = pq.ParquetFile(f, memory_map=True)
+                return (None, [filename, parquet_file.metadata.num_rows])
+            except Exception as e:
+                return (None, [filename, 0])
     except Exception as e:  # pylint: disable=broad-except
         return e, (filename, None)
-
 
 def get_parquet_headers(fs, embeddings_file_paths):
     """get parquet headers"""
