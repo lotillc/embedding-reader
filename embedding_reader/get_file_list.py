@@ -15,14 +15,6 @@ def get_file_list(embeddings_folder: str, api_endpoint: str, file_format: str) -
     return _get_file_list(embeddings_folder, api_endpoint, file_format)
 
 
-def get_embedding_paths(api_endpoint: str) -> List[str]:
-    response = requests.get(api_endpoint)
-    if response.status_code != 200:
-        raise ValueError(f"Failed to get embedding paths from {api_endpoint}")
-    data = response.json()["data"]
-    paths = [record['key'] for record in data]
-    return paths
-
 
 def filter_parquet_files(file_list, extension='parquet') -> List[str]:
     if not extension.startswith('.'):
@@ -32,13 +24,12 @@ def filter_parquet_files(file_list, extension='parquet') -> List[str]:
 
 
 def _get_file_list(
-    s3_bucket: str, api_endpoint: str, file_format: str, sort_result: bool = True
+    embeddings_folder: str, file_paths: str, file_format: str, sort_result: bool = True
 ) -> Tuple[fsspec.AbstractFileSystem, List[str]]:
     """Get the file system and all the file paths that matches `file_format` given a single path."""
-    file_paths = get_embedding_paths(api_endpoint)
-    file_paths = filter_parquet_files(file_paths)
-    fs, _ = fsspec.core.url_to_fs(s3_bucket)
-    prefix = s3_bucket.rstrip("/")
+    file_paths = filter_parquet_files(file_paths, file_format)
+    fs, _ = fsspec.core.url_to_fs(embeddings_folder)
+    prefix = embeddings_folder.rstrip("/")
     file_paths_with_prefix = [os.path.join(prefix, file_path) for file_path in file_paths]
 
     if sort_result:
