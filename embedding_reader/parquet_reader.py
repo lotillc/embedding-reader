@@ -10,7 +10,7 @@ from embedding_reader.get_file_list import get_file_list
 from embedding_reader.piece_builder import build_pieces, PIECES_BASE_COLUMNS
 from threading import Semaphore
 import math
-
+import pyarrow as pa
 
 def file_to_header(filename, fs):
     try:
@@ -153,6 +153,8 @@ class ParquetReader:
                 if piece.filename not in open_parquet_files:
                     file = self.fs.open(piece.filename, "rb")
                     table = pq.read_table(file, use_threads=True)
+                    path_column = pa.array([piece.filename] * len(table),type=pa.string())
+                    table = table.append_column('path', path_column)
                     open_parquet_files[piece.filename] = {"file": file, "table": table}
                 if current_parquet_file != piece.filename:
                     current_parquet_file = piece.filename
