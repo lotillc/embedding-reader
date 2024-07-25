@@ -54,8 +54,11 @@ class ParquetReader:
         # read one non empty file to get the dimension
         for filename in embeddings_file_paths:
             with self.fs.open(filename, "rb") as f:
-                parquet_file = pq.ParquetFile(f, memory_map=True)
-                batches = parquet_file.iter_batches(batch_size=1, columns=[embedding_column_name])
+                try:
+                    parquet_file = pq.ParquetFile(f, memory_map=True)
+                    batches = parquet_file.iter_batches(batch_size=1, columns=[embedding_column_name])
+                except:
+                    continue
                 try:
                     embedding = next(batches).to_pandas()[embedding_column_name].to_numpy()[0]
                     self.dimension = int(embedding.shape[0])
